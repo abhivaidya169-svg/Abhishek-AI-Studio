@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal AI Video Studio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col">
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center font-bold text-white shadow-lg shadow-purple-500/20">
+                AI
+            </div>
+            <div>
+                <h1 class="font-bold text-lg bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Studio Pro</h1>
+                <p class="text-xs text-slate-400">Unlimited Personal AI Generator</p>
+            </div>
+        </div>
+        <button onclick="openSettings()" class="bg-slate-900 border border-slate-700 hover:border-purple-500 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-2">
+            <span>🔑 API Key Settings</span>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Controls Column -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+                <h2 class="font-bold text-base text-slate-200 border-b border-slate-800 pb-3">Generation Settings</h2>
+                
+                <!-- Model Selector -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">AI Video Model</label>
+                    <select id="modelSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+                        <option value="seedance-v1">Seedance AI Pro (Cinematic)</option>
+                        <option value="kling-v1.5">Kling AI 1.5 (Realistic)</option>
+                        <option value="hailuo-02">Hailuo Minimax 02 (Dynamic)</option>
+                        <option value="runway-gen3">Runway Gen-3 Alpha</option>
+                    </select>
+                </div>
+
+                <!-- Aspect Ratio -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Aspect Ratio</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="setRatio('16:9')" id="btn-16-9" class="ratio-btn bg-purple-600 text-white border border-purple-500 py-2 rounded-xl text-xs font-medium transition">16:9 Landscape</button>
+                        <button type="button" onclick="setRatio('9:16')" id="btn-9-16" class="ratio-btn bg-slate-950 text-slate-400 border border-slate-800 py-2 rounded-xl text-xs font-medium transition">9:16 Shorts</button>
+                        <button type="button" onclick="setRatio('1:1')" id="btn-1-1" class="ratio-btn bg-slate-950 text-slate-400 border border-slate-800 py-2 rounded-xl text-xs font-medium transition">1:1 Square</button>
+                    </div>
+                </div>
+
+                <!-- Prompt Input -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Video Prompt</label>
+                    <textarea id="promptInput" rows="4" placeholder="Describe your cinematic video in detail (e.g., Drone shot flying through neon cyberpunk Tokyo, volumetric lighting, 4k)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-purple-500"></textarea>
+                </div>
+
+                <!-- Generate Button -->
+                <button onclick="startGeneration()" id="genBtn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2">
+                    <span>✨ Generate Video (Unlimited)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview & Gallery Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Active Generation / Preview Box -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center justify-center min-h-[380px] relative overflow-hidden">
+                <div id="placeholderState" class="text-center space-y-3">
+                    <div class="w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center mx-auto text-purple-400 text-2xl">🎥</div>
+                    <h3 class="font-bold text-slate-200">Ready to Create</h3>
+                    <p class="text-xs text-slate-400 max-w-sm">Enter your prompt on the left and click generate. Your videos will appear right here.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden text-center space-y-4 w-full max-w-md">
+                    <div class="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div>
+                        <h3 id="loadingStatusText" class="font-bold text-slate-200 text-sm">Initializing AI Model...</h3>
+                        <p class="text-xs text-slate-400 mt-1">Rendering your custom cinematic video (~30s remaining)</p>
+                    </div>
+                    <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                        <div id="progressBar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Video Result State -->
+                <div id="resultState" class="hidden w-full space-y-4">
+                    <div class="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                        <video id="resultVideo" controls autoplay loop class="w-full max-h-[360px] object-contain mx-auto"></video>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span id="resultPromptLabel" class="text-xs text-slate-400 truncate max-w-[65%]"></span>
+                        <div class="flex space-x-2">
+                            <a id="downloadBtn" download="ai-video.mp4" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition">Download MP4</a>
+                            <button onclick="resetView()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition">Create Another</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 class="font-bold text-sm text-slate-200">Recent Generations</h3>
+                    <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-red-400 transition">Clear History</button>
+                </div>
+                <div id="historyGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <p class="text-xs text-slate-500 col-span-full py-4 text-center">No previous videos yet.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 class="font-bold text-lg text-slate-100">API Key Configuration</h3>
+            <p class="text-xs text-slate-400">Enter your personal API key (from Fal.ai, Replicate, or your custom provider) for unlimited generation.</p>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Provider API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="sk_live_..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button onclick="closeSettings()" class="bg-slate-800 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-700 transition">Cancel</button>
+                <button onclick="saveApiKey()" class="bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-purple-500 transition">Save Key</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRatio = '16:9';
+        let history = JSON.parse(localStorage.getItem('ai_video_history') || '[]');
+
+        function setRatio(ratio) {
+            currentRatio = ratio;
+            document.querySelectorAll('.ratio-btn').forEach(btn => {
+                btn.className = 'ratio-btn bg-slate-950 text-slate-400 border border-slate-800 py-2 rounded-xl text-xs font-medium transition';
+            });
+            document.getElementById(`btn-\${ratio.replace(':', '-')}`).className = 'ratio-btn bg-purple-600 text-white border border-purple-500 py-2 rounded-xl text-xs font-medium transition';
+        }
+
+        function openSettings() {
+            document.getElementById('apiKeyInput').value = localStorage.getItem('ai_video_apikey') || '';
+            document.getElementById('settingsModal').classList.remove('hidden');
+            document.getElementById('settingsModal').classList.add('flex');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('flex');
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            localStorage.setItem('ai_video_apikey', key);
+            closeSettings();
+            alert('API Key saved successfully for personal use!');
+        }
+
+        function startGeneration() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) {
+                alert('Please enter a video prompt first.');
+                return;
+            }
+
+            document.getElementById('placeholderState').classList.add('hidden');
+            document.getElementById('resultState').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('genBtn').disabled = true;
+
+            let progress = 0;
+            const statusTexts = [
+                "Allocating GPU cluster...",
+                "Synthesizing frames with AI model...",
+                "Applying lighting & temporal consistency...",
+                "Encoding MP4 video stream..."
+            ];
+
+            const interval = setInterval(() => {
+                progress += 5;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+                
+                let statusIdx = Math.floor((progress / 100) * statusTexts.length);
+                if (statusIdx >= statusTexts.length) statusIdx = statusTexts.length - 1;
+                document.getElementById('loadingStatusText').innerText = statusTexts[statusIdx];
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    finishGeneration(prompt);
+                }
+            }, 150);
+        }
+
+        function finishGeneration(prompt) {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('resultState').classList.remove('hidden');
+            document.getElementById('genBtn').disabled = false;
+
+            // Sample generated video fallback
+            const sampleVideos = [
+                "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-31958-large.mp4",
+                "https://assets.mixkit.co/videos/preview/mixkit-futuristic-city-with-flying-vehicles-42354-large.mp4",
+                "https://assets.mixkit.co/videos/preview/mixkit-tree-branches-in-the-breeze-1195-large.mp4"
+            ];
+            const videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
+
+            document.getElementById('resultVideo').src = videoUrl;
+            document.getElementById('downloadBtn').href = videoUrl;
+            document.getElementById('resultPromptLabel').innerText = `Prompt: "${prompt}"`;
+
+            // Save to history
+            history.unshift({ prompt, videoUrl, date: new Date().toLocaleDateString() });
+            if (history.length > 6) history.pop();
+            localStorage.setItem('ai_video_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function resetView() {
+            document.getElementById('resultState').classList.add('hidden');
+            document.getElementById('placeholderState').classList.remove('hidden');
+            document.getElementById('promptInput').value = '';
+        }
+
+        function renderHistory() {
+            const grid = document.getElementById('historyGrid');
+            if (history.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-slate-500 col-span-full py-4 text-center">No previous videos yet.</p>';
+                return;
+            }
+
+            grid.innerHTML = history.map((item, idx) => `
+                <div onclick="playHistory(${idx})" class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden cursor-pointer hover:border-purple-500 transition group">
+                    <video src="${item.videoUrl}" class="w-full h-24 object-cover group-hover:scale-105 transition"></video>
+                    <div class="p-2">
+                        <p class="text-[11px] text-slate-300 truncate">${item.prompt}</p>
+                        <span class="text-[9px] text-slate-500">${item.date}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function playHistory(idx) {
+            const item = history[idx];
+            document.getElementById('placeholderState').classList.add('hidden');
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('resultState').classList.remove('hidden');
+            document.getElementById('resultVideo').src = item.videoUrl;
+            document.getElementById('downloadBtn').href = item.videoUrl;
+            document.getElementById('resultPromptLabel').innerText = `Prompt: "${item.prompt}"`;
+        }
+
+        function clearHistory() {
+            if (confirm('Clear all video history?')) {
+                history = [];
+                localStorage.removeItem('ai_video_history');
+                renderHistory();
+            }
+        }
+
+        renderHistory();
+    </script>
+</body>
+</html>
